@@ -1,4 +1,7 @@
+from datetime import datetime
+
 from rest_framework import generics, permissions
+from rest_framework.exceptions import ValidationError
 from django.utils import timezone
 from django.db.models import Case, When, Value, IntegerField, Q
 from django.shortcuts import get_object_or_404
@@ -35,8 +38,46 @@ class PostList(generics.ListCreateAPIView):
             Q(author=user)
         ).select_related('author').prefetch_related('tags')
 
-        if tag_name := self.request.query_params.get('tag'):
-            queryset = queryset.filter(tags__name__iexact=tag_name)
+        query_params = self.request.query_params
+
+        tags = query_params.getlist('tags')
+        if len(tags) == 1:
+            q = Q()
+            for tag in tags[0].split(','):
+                if tag := tag.strip():
+                    q |= Q(tags__name__iexact=tag)
+            queryset = queryset.filter(q)
+
+        elif len(tags) > 1:
+            for tag in tags:
+                if tag := tag.strip():
+                    queryset = queryset.filter(tags__name__iexact=tag)
+
+        if author_username := query_params.get('author'):
+            queryset = queryset.filter(author__username__iexact=author_username)
+
+        published_after = query_params.get('published_after')
+        published_before = query_params.get('published_before')
+
+        date_format = '%Y-%m-%d'
+
+        if published_after:
+            try:
+                published_after = datetime.strptime(published_after, date_format).date()
+                queryset = queryset.filter(published_at__date__gte=published_after)
+            except ValueError:
+                raise ValidationError({
+                    'published_after': f"Invalid date format. Expected {date_format}."
+                })
+
+        if published_before:
+            try:
+                published_before = datetime.strptime(published_before, date_format).date()
+                queryset = queryset.filter(published_at__date__lte=published_before)
+            except ValueError:
+                raise ValidationError({
+                    'published_before': f"Invalid date format. Expected {date_format}."
+                })
 
         queryset = queryset.annotate(
             is_owner=Case(
