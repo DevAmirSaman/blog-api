@@ -1,0 +1,4 @@
+Django
+djangorestframework
+psycopg[binary,pool]
+python-decouple
