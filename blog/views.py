@@ -1,14 +1,14 @@
 from datetime import datetime
 
+from django.db.models import Case, IntegerField, Q, Value, When
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import generics, permissions
 from rest_framework.exceptions import ValidationError
-from django.utils import timezone
-from django.db.models import Case, When, Value, IntegerField, Q
-from django.shortcuts import get_object_or_404
 
 from .models import Post, Tag
-from .serializers import PostSerializer, TagSerializer
 from .permissions import IsOwnerOrReadOnly
+from .serializers import PostSerializer, TagSerializer
 
 
 class TagList(generics.ListCreateAPIView):
@@ -31,12 +31,18 @@ class PostList(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        user = self.request.user if self.request.user.is_authenticated else None
+        user = (
+            self.request.user if self.request.user.is_authenticated else None
+        )
 
-        queryset = Post.objects.filter(
-            Q(status='published', published_at__lte=timezone.now()) |
-            Q(author=user)
-        ).select_related('author').prefetch_related('tags')
+        queryset = (
+            Post.objects.filter(
+                Q(status='published', published_at__lte=timezone.now())
+                | Q(author=user)
+            )
+            .select_related('author')
+            .prefetch_related('tags')
+        )
 
         query_params = self.request.query_params
 
@@ -54,7 +60,9 @@ class PostList(generics.ListCreateAPIView):
                     queryset = queryset.filter(tags__name__iexact=tag)
 
         if author_username := query_params.get('author'):
-            queryset = queryset.filter(author__username__iexact=author_username)
+            queryset = queryset.filter(
+                author__username__iexact=author_username
+            )
 
         published_after = query_params.get('published_after')
         published_before = query_params.get('published_before')
@@ -63,27 +71,39 @@ class PostList(generics.ListCreateAPIView):
 
         if published_after:
             try:
-                published_after = datetime.strptime(published_after, date_format).date()
-                queryset = queryset.filter(published_at__date__gte=published_after)
+                published_after = datetime.strptime(
+                    published_after, date_format
+                ).date()
+                queryset = queryset.filter(
+                    published_at__date__gte=published_after
+                )
             except ValueError:
-                raise ValidationError({
-                    'published_after': f"Invalid date format. Expected {date_format}."
-                })
+                raise ValidationError(
+                    {
+                        'published_after': f'Invalid date format. Expected {date_format}.'
+                    }
+                )
 
         if published_before:
             try:
-                published_before = datetime.strptime(published_before, date_format).date()
-                queryset = queryset.filter(published_at__date__lte=published_before)
+                published_before = datetime.strptime(
+                    published_before, date_format
+                ).date()
+                queryset = queryset.filter(
+                    published_at__date__lte=published_before
+                )
             except ValueError:
-                raise ValidationError({
-                    'published_before': f"Invalid date format. Expected {date_format}."
-                })
+                raise ValidationError(
+                    {
+                        'published_before': f'Invalid date format. Expected {date_format}.'
+                    }
+                )
 
         queryset = queryset.annotate(
             is_owner=Case(
-                When(author=user, then=Value(0)), 
+                When(author=user, then=Value(0)),
                 default=Value(1),
-                output_field=IntegerField()
+                output_field=IntegerField(),
             )
         )
 

@@ -12,11 +12,7 @@ class TagAdmin(admin.ModelAdmin):
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
     list_display = ('title', 'author', 'status', 'published_at', 'created_at')
-    list_filter = (
-        'status',
-        'author',
-        'tags',
-    )
+    list_filter = ('status', 'author', 'tags')
     search_fields = ('title', 'content', 'author__username')
     prepopulated_fields = {'slug': ('title',)}
     date_hierarchy = 'published_at'
