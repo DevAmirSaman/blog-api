@@ -10,12 +10,13 @@ class TagSerializer(serializers.ModelSerializer):
         fields = ['id', 'name']
 
 
-class PostSerializer(serializers.ModelSerializer):
+class PostSerializer(serializers.HyperlinkedModelSerializer):
     author = serializers.ReadOnlyField(source='author.username')
 
     class Meta:
         model = Post
         fields = [
+            'url',
             'id',
             'title',
             'slug',
