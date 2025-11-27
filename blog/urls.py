@@ -1,10 +1,11 @@
 from django.urls import path
 
-from .views import PostDetail, PostList, TagDetail, TagList
+from .views import APIRoot, PostDetail, PostList, TagDetail, TagList
 
 urlpatterns = [
-    path('posts/', PostList.as_view()),
-    path('posts/<int:pk>/', PostDetail.as_view()),
-    path('tags/', TagList.as_view()),
-    path('tags/<str:name>/', TagDetail.as_view()),
+    path('', APIRoot.as_view(), name='api-root'),
+    path('posts/', PostList.as_view(), name='post-list'),
+    path('posts/<int:pk>/', PostDetail.as_view(), name='post-detail'),
+    path('tags/', TagList.as_view(), name='tag-list'),
+    path('tags/<str:name>/', TagDetail.as_view(), name='tag-detail'),
 ]

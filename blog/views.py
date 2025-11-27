@@ -5,10 +5,23 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions
 from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
+from rest_framework.reverse import reverse
+from rest_framework.views import APIView
 
 from .models import Post, Tag
 from .permissions import IsOwnerOrReadOnly
 from .serializers import PostSerializer, TagSerializer
+
+
+class APIRoot(APIView):
+    def get(self, request):
+        return Response(
+            {
+                'posts': reverse('post-list', request=request),
+                'tags': reverse('tag-list', request=request),
+            }
+        )
 
 
 class TagList(generics.ListCreateAPIView):
