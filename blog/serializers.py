@@ -27,7 +27,6 @@ class PostSerializer(serializers.ModelSerializer):
             'status',
             'content',
         ]
-        read_only_fields = ['created_at', 'updated_at']
 
     def get_fields(self):
         fields = super().get_fields()
