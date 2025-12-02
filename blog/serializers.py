@@ -67,6 +67,7 @@ class PostSerializer(serializers.HyperlinkedModelSerializer):
 
         if self.instance:
             if self.instance.status == 'published' and status == 'draft':
+                data['status'] = 'draft'
                 data['published_at'] = None
 
         return data
