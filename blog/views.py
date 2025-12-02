@@ -112,15 +112,19 @@ class PostList(generics.ListCreateAPIView):
                     }
                 )
 
-        queryset = queryset.annotate(
-            is_owner=Case(
-                When(author=user, then=Value(0)),
-                default=Value(1),
-                output_field=IntegerField(),
-            )
+        order_by_ownership = Case(
+            When(author=user, then=Value(0)),
+            default=Value(1),
+            output_field=IntegerField()
         )
 
-        return queryset.distinct().order_by('is_owner', '-published_at')
+        order_by_status = Case(
+            When(status='published', then=Value(0)),
+            default=Value(1),
+            output_field=IntegerField()
+        )
+
+        return queryset.distinct().order_by(order_by_ownership, order_by_status, '-published_at')
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
