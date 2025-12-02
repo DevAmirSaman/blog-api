@@ -4,7 +4,7 @@ from django.db.models import Case, IntegerField, Q, Value, When
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions
-from rest_framework.exceptions import ValidationError, PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.views import APIView
@@ -115,16 +115,18 @@ class PostList(generics.ListCreateAPIView):
         order_by_ownership = Case(
             When(author=user, then=Value(0)),
             default=Value(1),
-            output_field=IntegerField()
+            output_field=IntegerField(),
         )
 
         order_by_status = Case(
             When(status='published', then=Value(0)),
             default=Value(1),
-            output_field=IntegerField()
+            output_field=IntegerField(),
         )
 
-        return queryset.distinct().order_by(order_by_ownership, order_by_status, '-published_at')
+        return queryset.distinct().order_by(
+            order_by_ownership, order_by_status, '-published_at'
+        )
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -144,7 +146,7 @@ class PostDetail(generics.RetrieveUpdateDestroyAPIView):
                 Post,
                 pk=pk,
                 status='published',
-                published_at__lte=timezone.now()
+                published_at__lte=timezone.now(),
             )
 
         if self.request.method == 'GET':
@@ -156,6 +158,8 @@ class PostDetail(generics.RetrieveUpdateDestroyAPIView):
 
         obj = get_object_or_404(Post, pk=pk)
         if obj.author != user:
-            raise PermissionDenied('You do not have permission to modify this post.')
+            raise PermissionDenied(
+                'You do not have permission to modify this post.'
+            )
 
         return obj
