@@ -4,7 +4,7 @@ from django.db.models import Case, IntegerField, Q, Value, When
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError, PermissionDenied
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.views import APIView
@@ -134,3 +134,28 @@ class PostDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
     permission_classes = [IsOwnerOrReadOnly]
+
+    def get_object(self):
+        user = self.request.user
+        pk = self.kwargs['pk']
+
+        if not user.is_authenticated:
+            return get_object_or_404(
+                Post,
+                pk=pk,
+                status='published',
+                published_at__lte=timezone.now()
+            )
+
+        if self.request.method == 'GET':
+            queryset = Post.objects.filter(
+                Q(status='published', published_at__lte=timezone.now())
+                | Q(author=user)
+            )
+            return get_object_or_404(queryset, pk=pk)
+
+        obj = get_object_or_404(Post, pk=pk)
+        if obj.author != user:
+            raise PermissionDenied('You do not have permission to modify this post.')
+
+        return obj
